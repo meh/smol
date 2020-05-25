@@ -134,3 +134,4 @@ pub use block_on::block_on;
 pub use run::run;
 pub use task::Task;
 pub use timer::Timer;
+pub use socket2 as socket;

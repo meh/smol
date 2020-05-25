@@ -1196,3 +1196,115 @@ impl Async<UnixDatagram> {
         self.write_with(|io| io.send(buf)).await
     }
 }
+
+impl Async<Socket> {
+    /// Connects the socket to the specified address.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use smol::{Async, socket::{Socket, Domain, Type}};
+    ///
+    /// # smol::run(async {
+    /// let socket = Async::new(Socket::new(Domain::ipv4(), Type::stream(), None)?)?;
+    /// socket.connect("example.com:80").await?;
+    /// # std::io::Result::Ok(()) });
+    /// ```
+    pub async fn connect<A: Into<SocketAddr>>(&self, addr: A) -> io::Result<()> {
+        let addr = addr.into();
+        self.write_with(|io| io.connect(&addr.into())).await
+    }
+
+    /// Receives a single datagram message.
+    ///
+    /// Returns the number of bytes read and the address the message came from.
+    ///
+    /// This method must be called with a valid byte slice of sufficient size to hold the message.
+    /// If the message is too long to fit, excess bytes may get discarded.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use smol::Async;
+    ///
+    /// # smol::run(async {
+    /// let socket = Async::<UdpSocket>::bind("127.0.0.1:9000")?;
+    ///
+    /// let mut buf = [0u8; 1024];
+    /// let (len, addr) = socket.recv_from(&mut buf).await?;
+    /// # std::io::Result::Ok(()) });
+    /// ```
+    pub async fn recv_from(&self, buf: &mut [u8]) -> io::Result<(usize, socket2::SockAddr)> {
+        let (read, addr) = self.read_with(|io| io.recv_from(buf)).await?;
+        Ok((read, addr.into()))
+    }
+
+    /// Reads data from the socket without removing it from the buffer.
+    ///
+    /// Returns the number of bytes read. Successive calls of this method read the same data.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use smol::{Async, socket::{Socket, Domain, Type};
+    ///
+    /// # smol::run(async {
+    /// let socket = Async::new(Socket::new(Domain::ipv4(), Type::stream(), None)?)?;
+    /// socket.connect("example.com:80").await?;
+    ///
+    /// let mut buf = [0u8; 1024];
+    /// let len = stream.peek(&mut buf).await?;
+    /// # std::io::Result::Ok(()) });
+    /// ```
+    pub async fn peek(&self, buf: &mut [u8]) -> io::Result<usize> {
+        self.read_with(|io| io.peek(buf)).await
+    }
+
+    /// Receives a single datagram message without removing it from the queue.
+    ///
+    /// Returns the number of bytes read and the address the message came from.
+    ///
+    /// This method must be called with a valid byte slice of sufficient size to hold the message.
+    /// If the message is too long to fit, excess bytes may get discarded.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use smol::{Async, socket::{Socket, Protocol, Domain};
+    /// use std::net::UdpSocket;
+    ///
+    /// # smol::run(async {
+    /// let socket = Async::<UdpSocket>::bind("127.0.0.1:9000")?;
+    ///
+    /// let mut buf = [0u8; 1024];
+    /// let (len, addr) = socket.peek_from(&mut buf).await?;
+    /// # std::io::Result::Ok(()) });
+    /// ```
+    pub async fn peek_from(&self, buf: &mut [u8]) -> io::Result<(usize, socket2::SockAddr)> {
+        let (read, addr) = self.read_with(|io| io.peek_from(buf)).await?;
+        Ok((read, addr.into()))
+    }
+
+    /// Sends data to the specified address.
+    ///
+    /// Returns the number of bytes writen.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use smol::Async;
+    /// use std::net::UdpSocket;
+    ///
+    /// # smol::run(async {
+    /// let socket = Async::<UdpSocket>::bind("127.0.0.1:9000")?;
+    ///
+    /// let msg = b"hello";
+    /// let addr = ([127, 0, 0, 1], 8000);
+    /// let len = socket.send_to(msg, addr).await?;
+    /// # std::io::Result::Ok(()) });
+    /// ```
+    pub async fn send_to<A: Into<SocketAddr>>(&self, buf: &[u8], addr: A) -> io::Result<usize> {
+        let addr = addr.into();
+        self.write_with(|io| io.send_to(buf, &addr.into())).await
+    }
+}
